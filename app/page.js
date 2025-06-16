@@ -6,6 +6,7 @@ import { useCopilotAction } from "@copilotkit/react-core";
 export default function Home() {
   const [todo, setTodo] = useState("");
   const [todos, setTodos] = useState([]);
+  const [editIndex, setEditIndex] = useState(null); // ✅ editing state
 
   const handleAdd = (todoText) => {
     if (todoText.trim() !== "") {
@@ -19,7 +20,22 @@ export default function Home() {
     setTodos(updatedTodos);
   };
 
-  // Copilot Action: Add Todo
+  const handleEdit = (index) => {
+    setTodo(todos[index]);
+    setEditIndex(index);
+  };
+
+  const handleUpdate = () => {
+    if (todo.trim() !== "" && editIndex !== null) {
+      const updatedTodos = [...todos];
+      updatedTodos[editIndex] = todo;
+      setTodos(updatedTodos);
+      setTodo("");
+      setEditIndex(null);
+    }
+  };
+
+  // ✅ Copilot Action: Add Todo
   useCopilotAction({
     name: "addTodoItem",
     description: "Add a new todo item to the list",
@@ -37,14 +53,14 @@ export default function Home() {
     },
   });
 
-  // Copilot Action: Delete Todo by Index
+  // ✅ Copilot Action: Delete Todo
   useCopilotAction({
     name: "deleteTodoItem",
     description: "Delete a todo item from the list",
     parameters: [
       {
         name: "todoIndex",
-        type: "string", // Copilot sends as string
+        type: "string",
         description: "Index of the todo item to delete",
         required: true,
       },
@@ -52,6 +68,36 @@ export default function Home() {
     handler: async ({ todoIndex }) => {
       handleDelete(Number(todoIndex));
       return `Deleted todo at index ${todoIndex}`;
+    },
+  });
+
+  // ✅ Copilot Action: Edit Todo
+  useCopilotAction({
+    name: "editTodoItem",
+    description: "Edit a todo item in the list",
+    parameters: [
+      {
+        name: "todoIndex",
+        type: "string",
+        description: "Index of the todo item to edit",
+        required: true,
+      },
+      {
+        name: "newText",
+        type: "string",
+        description: "New text to replace the todo item with",
+        required: true,
+      },
+    ],
+    handler: async ({ todoIndex, newText }) => {
+      const index = Number(todoIndex);
+      if (!isNaN(index) && todos[index]) {
+        const updatedTodos = [...todos];
+        updatedTodos[index] = newText;
+        setTodos(updatedTodos);
+        return `Updated todo at index ${index} to "${newText}"`;
+      }
+      return `Invalid index or todo item does not exist.`;
     },
   });
 
@@ -71,12 +117,21 @@ export default function Home() {
             className="flex-1 w-full md:w-auto resize-none p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
           ></textarea>
 
-          <button
-            onClick={() => handleAdd(todo)}
-            className="bg-blue-500 text-white px-5 py-2 rounded-md hover:bg-blue-600 transition-all"
-          >
-            Add Todo
-          </button>
+          {editIndex !== null ? (
+            <button
+              onClick={handleUpdate}
+              className="bg-green-500 text-white px-5 py-2 rounded-md hover:bg-green-600 transition-all"
+            >
+              Update Todo
+            </button>
+          ) : (
+            <button
+              onClick={() => handleAdd(todo)}
+              className="bg-blue-500 text-white px-5 py-2 rounded-md hover:bg-blue-600 transition-all"
+            >
+              Add Todo
+            </button>
+          )}
         </div>
 
         {todos.length > 0 ? (
@@ -87,12 +142,20 @@ export default function Home() {
                 className="flex justify-between items-center bg-blue-50 border border-blue-200 rounded-md p-3"
               >
                 <span className="text-gray-800 break-words">{item}</span>
-                <button
-                  onClick={() => handleDelete(index)}
-                  className="text-red-500 hover:text-red-700 font-semibold"
-                >
-                  Delete
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleEdit(index)}
+                    className="text-yellow-500 hover:text-yellow-700 font-semibold"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(index)}
+                    className="text-red-500 hover:text-red-700 font-semibold"
+                  >
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
